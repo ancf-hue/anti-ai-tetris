@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Тетрис Хаос - Со Звуком</title>
+    
+    <!-- FAVICON -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    
+    <script>
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'LINK' && e.target.rel === 'icon') {
+                const fallback = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🧩</text></svg>';
+                document.querySelector('link[rel="icon"]').href = fallback;
+            }
+        }, true);
+    </script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050512; font-family: sans-serif; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; max-width: 56.25vh; max-height: 177.77vw; margin: 0 auto; background: #000; }
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        /* ЛОГОТИП */
+        #logo {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            width: 100%;
+        }
+        #logo-img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px #00ffaa) drop-shadow(0 0 20px #00ffaa88);
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+        @keyframes logoGlow {
+            from { filter: drop-shadow(0 0 8px #00ffaa) drop-shadow(0 0 20px #00ffaa88); }
+            to   { filter: drop-shadow(0 0 15px #00ffaa) drop-shadow(0 0 35px #00ffaa); }
+        }
+        #logo-text {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #00ffaa;
+            text-shadow: 0 0 10px #00ffaa88;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .ui-element { position: absolute; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10; }
+        #score-box { top: 20px; left: 20px; font-size: 20px; font-weight: bold; font-family: monospace; color: #00ffaa; }
+        
+        /* 🔇 КНОПКА ЗВУКА */
+        #sound-btn {
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 255, 170, 0.2);
+            border: 2px solid #00ffaa;
+            border-radius: 50%;
+            color: #00ffaa;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            pointer-events: auto;
+            z-index: 15;
+        }
+        #sound-btn:hover {
+            background: rgba(0, 255, 170, 0.4);
+            transform: scale(1.1);
+        }
+        #sound-btn.muted {
+            border-color: #ff6666;
+            color: #ff6666;
+            background: rgba(255, 102, 102, 0.2);
+        }
+        
+        #menu-overlay { 
+            position: absolute; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(5, 5, 18, 0.95); 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 20;
+            padding-top: 80px;
+            box-sizing: border-box;
+        }
+        #game-title { color: #00ffaa; font-size: 28px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+        .btn { padding: 15px 40px; font-size: 18px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #ff0055, #aa00ff); border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 0 15px rgba(255,0,85,0.4); font-family: sans-serif; }
+        
+        #controls { position: absolute; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: space-around; padding: 0 10px; box-sizing: border-box; z-index: 10; }
+        .ctrl-btn { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; color: #fff; font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; user-select: none; }
+        .ctrl-btn:active { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- ЛОГОТИП -->
+    <div id="logo">
+        <img id="logo-img" src="favicon.ico" alt="Логотип" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧩</text></svg>'">
+        <div id="logo-text">ANTI AI TETRIS</div>
+    </div>
+    
+    <div id="score-box" class="ui-element">SCORE: <span id="score">0</span></div>
+    
+    <!-- 🔇 КНОПКА ЗВУКА -->
+    <button id="sound-btn" class="ui-element" title="Вкл/Выкл звук">🔊</button>
+    
+    <div id="menu-overlay">
+        <div id="game-title">ТЕТРИС ХАОС 3D<br><span style="font-size:14px; color:#aaa; text-transform:none;">(Со звуком 🎵)</span></div>
+        <button id="action-btn" class="btn">СТАРТ</button>
+    </div>
+
+    <div id="controls">
+        <div class="ctrl-btn" id="btn-left">◀</div>
+        <div class="ctrl-btn" id="btn-down">▼</div>
+        <div class="ctrl-btn" id="btn-right">▶</div>
+    </div>
+</div>
+
+<script>
+    // ================== АУДИО-СИСТЕМА (Web Audio API) ==================
+    const AudioSys = {
+        ctx: null,
+        muted: false,
+        
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        },
+        
+        // 🎵 Генерация тона (синусоида)
+        playTone(freq, duration, type = 'sine', volume = 0.1, delay = 0) {
+            if (this.muted || !this.ctx) return;
+            
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+            
+            // Плавное затухание
+            gain.gain.setValueAtTime(0, this.ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(volume, this.ctx.currentTime + delay + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            
+            osc.start(this.ctx.currentTime + delay);
+            osc.stop(this.ctx.currentTime + delay + duration);
+        },
+        
+        // 🎵 Звук исчезновения строки (приятный аккорд)
+        playLineClear() {
+            if (this.muted) return;
+            this.init();
+            // Арпеджио вверх
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                this.playTone(freq, 0.15, 'sine', 0.08, i * 0.05);
+            });
+        },
+        
+        // 🎵 Звук фиксации фигуры
+        playLock() {
+            if (this.muted) return;
+            this.init();
+            this.playTone(220, 0.08, 'square', 0.05);
+        },
+        
+        // 🎵 Звук поворота
+        playRotate() {
+            if (this.muted) return;
+            this.init();
+            this.playTone(440, 0.04, 'triangle', 0.03);
+        },
+        
+        // 🎵 Звук движения
+        playMove() {
+            if (this.muted) return;
+            this.init();
+            this.playTone(330, 0.03, 'sine', 0.02);
+        },
+        
+        // 🎵 Звук игры окончена
+        playGameOver() {
+            if (this.muted) return;
+            this.init();
+            // Нисходящий грустный аккорд
+            [392, 311.13, 261.63].forEach((freq, i) => {
+                this.playTone(freq, 0.3, 'sawtooth', 0.1, i * 0.15);
+            });
+        },
+        
+        // 🔇 Переключение звука
+        toggle() {
+            this.muted = !this.muted;
+            return this.muted;
+        }
+    };
+
+    // ================== ОСНОВНОЙ КОД ИГРЫ ==================
+    const container = document.getElementById('game-container');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const actionBtn = document.getElementById('action-btn');
+    const gameTitle = document.getElementById('game-title');
+    const scoreEl = document.getElementById('score');
+    const soundBtn = document.getElementById('sound-btn');
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    container.appendChild(canvas);
+
+    const COLS = 10;
+    const ROWS = 20;
+    let grid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
+
+    let score = 0;
+    let isPlaying = false;
+    let lastTime = 0;
+
+    const NORMAL_SPEED = 1.5;
+    const FAST_SPEED = 8.0;
+    let currentFallSpeed = NORMAL_SPEED;
+
+    const SHAPES = {
+        I: [[0,1], [0,0], [0,-1], [0,-2]],
+        O: [[0,0], [1,0], [0,1], [1,1]],
+        T: [[-1,0], [0,0], [1,0], [0,1]],
+        L: [[0,1], [0,0], [0,-1], [1,-1]],
+        J: [[0,1], [0,0], [0,-1], [-1,-1]],
+        S: [[-1,0], [0,0], [0,1], [1,1]],
+        Z: [[-1,1], [0,1], [0,0], [1,0]]
+    };
+    const COLORS = ['#ff0055', '#00ffaa', '#0088ff', '#ffaa00', '#aa00ff', '#00ffff', '#ffff00'];
+
+    let activePiece = null;
+    let globalAngleX = 0, globalAngleY = 0, globalAngleZ = 0;
+
+    function rotate3D(x, y, z, ax, ay, az) {
+        let radX = ax;
+        let y1 = y * Math.cos(radX) - z * Math.sin(radX);
+        let z1 = y * Math.sin(radX) + z * Math.cos(radX);
+        let radY = ay;
+        let x2 = x * Math.cos(radY) + z1 * Math.sin(radY);
+        let z2 = -x * Math.sin(radY) + z1 * Math.cos(radY);
+        let radZ = az;
+        let x3 = x2 * Math.cos(radZ) - y1 * Math.sin(radZ);
+        let y3 = x2 * Math.sin(radZ) + y1 * Math.cos(radZ);
+        return { x: x3, y: y3, z: z2 };
+    }
+
+    function project(x, y, z) {
+        const fov = 420; 
+        const viewerDistance = 14; 
+        const scale = fov / (viewerDistance + z);
+        const screenX = canvas.width / 2 + x * scale;
+        const screenY = canvas.height * 0.88 - y * scale; 
+        return { x: screenX, y: screenY };
+    }
+
+    function draw3DCube(gridX, gridY, zOffset, color, angleX, angleY, angleZ) {
+        const size = 0.43;
+        const vertices = [
+            {x: -size, y: -size, z: -size}, {x: size, y: -size, z: -size},
+            {x: size, y: size, z: -size},   {x: -size, y: size, z: -size},
+            {x: -size, y: -size, z: size},  {x: size, y: -size, z: size},
+            {x: size, y: size, z: size},    {x: -size, y: size, z: size}
+        ];
+
+        const projectedVertices = vertices.map(v => {
+            const rot = rotate3D(v.x, v.y, v.z, angleX, angleY, angleZ);
+            const finalX = (gridX - COLS / 2 + 0.5) * 0.9 + rot.x;
+            const finalY = gridY * 0.9 + rot.y;
+            const finalZ = zOffset + rot.z;
+            return project(finalX, finalY, finalZ);
+        });
+
+        const faces = [
+            [0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4],
+            [2, 3, 7, 6], [0, 3, 7, 4], [1, 2, 6, 5]
+        ];
+
+        faces.forEach((face, index) => {
+            ctx.beginPath();
+            ctx.moveTo(projectedVertices[face[0]].x, projectedVertices[face[0]].y);
+            for(let i = 1; i < 4; i++) {
+                ctx.lineTo(projectedVertices[face[i]].x, projectedVertices[face[i]].y);
+            }
+            ctx.closePath();
+
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.12 * (index % 4)})`;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        });
+    }
+
+    function spawnPiece() {
+        const keys = Object.keys(SHAPES);
+        const type = keys[Math.floor(Math.random() * keys.length)];
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+        activePiece = {
+            type: type,
+            color: color,
+            blocks: SHAPES[type].map(b => ({x: b[0], y: b[1]})),
+            x: Math.floor(COLS / 2) - 1,
+            preciseY: ROWS - 1.5
+        };
+
+        if (checkCollision(0, 0, Math.round(activePiece.preciseY))) {
+            gameOver();
+        }
+    }
+
+    function checkCollision(offsetX, offsetY, targetGridY) {
+        for (let b of activePiece.blocks) {
+            let tx = activePiece.x + b.x + offsetX;
+            let ty = targetGridY + b.y + offsetY;
+            if (tx < 0 || tx >= COLS || ty < 0) return true;
+            if (ty < ROWS && grid[ty][tx]) return true;
+        }
+        return false;
+    }
+
+    function lockPiece() {
+        const finalGridY = Math.round(activePiece.preciseY);
+        activePiece.blocks.forEach(b => {
+            let tx = activePiece.x + b.x;
+            let ty = finalGridY + b.y;
+            if (ty >= 0 && ty < ROWS) {
+                grid[ty][tx] = activePiece.color;
+            }
+        });
+        
+        // 🔊 Звук фиксации
+        AudioSys.playLock();
+        
+        checkLines();
+        score += 10;
+        scoreEl.innerText = score;
+        spawnPiece();
+    }
+
+    function checkLines() {
+        let linesCleared = 0;
+        
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (grid[r].every(cell => cell !== null)) {
+                grid.splice(r, 1);
+                grid.push(Array(COLS).fill(null));
+                linesCleared++;
+            }
+        }
+        
+        if (linesCleared > 0) {
+            // 🔊 ЗВУК ИСЧЕЗНОВЕНИЯ СТРОКИ!
+            AudioSys.playLineClear();
+            
+            score += linesCleared * 100;
+            scoreEl.innerText = score;
+        }
+    }
+
+    function updateAndRender(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+
+        ctx.fillStyle = '#050512';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let y = 0; y <= ROWS; y++) {
+            const p1 = project(-COLS/2 * 0.9, y * 0.9, 0);
+            const p2 = project(COLS/2 * 0.9, y * 0.9, 0);
+            ctx.strokeStyle = 'rgba(0, 255, 170, 0.06)';
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        }
+        for (let x = 0; x <= COLS; x++) {
+            const p1 = project((x - COLS/2) * 0.9, 0, 0);
+            const p2 = project((x - COLS/2) * 0.9, ROWS * 0.9, 0);
+            ctx.strokeStyle = 'rgba(0, 255, 170, 0.06)';
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        }
+
+        if (isPlaying) {
+            if (activePiece) {
+                activePiece.preciseY -= currentFallSpeed * dt;
+                const nextGridY = Math.floor(activePiece.preciseY);
+                if (checkCollision(0, -1, Math.round(activePiece.preciseY))) {
+                    if (activePiece.preciseY <= Math.round(activePiece.preciseY)) {
+                        lockPiece();
+                    }
+                }
+                globalAngleX += 1.8 * dt;
+                globalAngleY += 2.8 * dt;
+                globalAngleZ += 1.2 * dt;
+            }
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c]) {
+                        draw3DCube(c, r, 0, grid[r][c], 0, 0, 0);
+                    }
+                }
+            }
+
+            if (activePiece) {
+                activePiece.blocks.forEach(b => {
+                    draw3DCube(
+                        activePiece.x + b.x, 
+                        activePiece.preciseY + b.y,
+                        0, 
+                        activePiece.color, 
+                        globalAngleX, 
+                        globalAngleY, 
+                        globalAngleZ
+                    );
+                });
+            }
+        }
+
+        requestAnimationFrame(updateAndRender);
+    }
+
+    // ================== УПРАВЛЕНИЕ ==================
+    function moveLeft()  { 
+        if (isPlaying && activePiece && !checkCollision(-1, 0, Math.round(activePiece.preciseY))) {
+            activePiece.x--;
+            AudioSys.playMove(); // 🔊 Звук движения
+        }
+    }
+    function moveRight() { 
+        if (isPlaying && activePiece && !checkCollision(1, 0, Math.round(activePiece.preciseY))) {
+            activePiece.x++;
+            AudioSys.playMove(); // 🔊 Звук движения
+        }
+    }
+    
+    function startFastDrop() { currentFallSpeed = FAST_SPEED; }
+    function stopFastDrop()  { currentFallSpeed = NORMAL_SPEED; }
+
+    function rotatePiece() {
+        if (isPlaying && activePiece) {
+            // Простой поворот для 2D-представления
+            const old = JSON.parse(JSON.stringify(activePiece.blocks));
+            activePiece.blocks.forEach(b => {
+                const nx = -b.y;
+                const ny = b.x;
+                b.x = nx; b.y = ny;
+            });
+            if (checkCollision(0, 0, Math.round(activePiece.preciseY))) {
+                activePiece.blocks = old; // Отмена если коллизия
+            } else {
+                AudioSys.playRotate(); // 🔊 Звук поворота
+            }
+        }
+    }
+
+    // События
+    document.getElementById('btn-left').addEventListener('pointerdown', moveLeft);
+    document.getElementById('btn-right').addEventListener('pointerdown', moveRight);
+    document.getElementById('btn-down').addEventListener('pointerdown', startFastDrop);
+    document.getElementById('btn-down').addEventListener('pointerup', stopFastDrop);
+    document.getElementById('btn-down').addEventListener('pointerleave', stopFastDrop);
+
+    // Клавиатура + поворот по верхней стрелке
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') moveLeft();
+        if (e.key === 'ArrowRight') moveRight();
+        if (e.key === 'ArrowDown') startFastDrop();
+        if (e.key === 'ArrowUp') { e.preventDefault(); rotatePiece(); }
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowDown') stopFastDrop();
+    });
+
+    // 🔇 КНОПКА ЗВУКА
+    soundBtn.addEventListener('click', () => {
+        AudioSys.init(); // Инициализация при первом клике
+        const muted = AudioSys.toggle();
+        soundBtn.textContent = muted ? '🔇' : '🔊';
+        soundBtn.classList.toggle('muted', muted);
+    });
+
+    function startGame() {
+        AudioSys.init(); // Инициализация аудио при старте
+        grid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
+        score = 0;
+        scoreEl.innerText = score;
+        menuOverlay.style.display = 'none';
+        isPlaying = true;
+        lastTime = performance.now();
+        spawnPiece();
+    }
+
+    function gameOver() {
+        isPlaying = false;
+        AudioSys.playGameOver(); // 🔊 Звук проигрыша
+        gameTitle.innerHTML = "ИГРА ОКОНЧЕНА<br><span style='font-size:16px;color:#ff0055;'>Вы набрали: " + score + "</span>";
+        actionBtn.innerText = "ЗАНОВО";
+        menuOverlay.style.display = 'flex';
+    }
+
+    actionBtn.addEventListener('click', startGame);
+    requestAnimationFrame(updateAndRender);
+</script>
+</body>
+</html>
