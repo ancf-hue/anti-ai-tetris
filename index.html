@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Тетрис Хаос - Со Звуком</title>
+    <title>3D Тетрис Хаос - Плавный Движок</title>
     
-    <!-- FAVICON -->
+    <!-- ✅ FAVICON: ваш файл favicon.ico -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     
+    <!-- 🔔 Заглушка если favicon не найден -->
     <script>
         window.addEventListener('error', function(e) {
             if (e.target.tagName === 'LINK' && e.target.rel === 'icon') {
@@ -19,11 +20,41 @@
     </script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: #050512; font-family: sans-serif; touch-action: none; }
-        #game-container { position: relative; width: 100vw; height: 100vh; max-width: 56.25vh; max-height: 177.77vw; margin: 0 auto; background: #000; }
-        canvas { display: block; width: 100%; height: 100%; }
+        /* === ✅ СКРЫТИЕ ПОЛОСЫ ПРОКРУТКИ (только это добавлено) === */
+        * {
+            -ms-overflow-style: none;  /* IE и Edge */
+            scrollbar-width: none;     /* Firefox */
+        }
+        *::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari, Opera */
+            width: 0;
+            height: 0;
+        }
         
-        /* ЛОГОТИП */
+        /* === ОСНОВНЫЕ СТИЛИ === */
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #050512; 
+            font-family: sans-serif; 
+            touch-action: none; 
+        }
+        #game-container { 
+            position: relative; 
+            width: 100vw; 
+            height: 100vh; 
+            max-width: 56.25vh; 
+            max-height: 177.77vw; 
+            margin: 0 auto; 
+            background: #000; 
+        }
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+        }
+        
+        /* === ЛОГОТИП С ПОДСВЕТКОЙ === */
         #logo {
             position: absolute;
             top: 15px;
@@ -44,8 +75,12 @@
             animation: logoGlow 2s ease-in-out infinite alternate;
         }
         @keyframes logoGlow {
-            from { filter: drop-shadow(0 0 8px #00ffaa) drop-shadow(0 0 20px #00ffaa88); }
-            to   { filter: drop-shadow(0 0 15px #00ffaa) drop-shadow(0 0 35px #00ffaa); }
+            from { 
+                filter: drop-shadow(0 0 8px #00ffaa) drop-shadow(0 0 20px #00ffaa88); 
+            }
+            to { 
+                filter: drop-shadow(0 0 15px #00ffaa) drop-shadow(0 0 35px #00ffaa); 
+            }
         }
         #logo-text {
             margin-top: 5px;
@@ -56,10 +91,22 @@
             white-space: nowrap;
         }
 
-        .ui-element { position: absolute; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10; }
-        #score-box { top: 20px; left: 20px; font-size: 20px; font-weight: bold; font-family: monospace; color: #00ffaa; }
+        .ui-element { 
+            position: absolute; 
+            color: #fff; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); 
+            z-index: 10; 
+        }
+        #score-box { 
+            top: 20px; 
+            left: 20px; 
+            font-size: 20px; 
+            font-weight: bold; 
+            font-family: monospace; 
+            color: #00ffaa; 
+        }
         
-        /* 🔇 КНОПКА ЗВУКА */
+        /* === КНОПКА ЗВУКА === */
         #sound-btn {
             top: 20px;
             right: 20px;
@@ -88,28 +135,227 @@
             background: rgba(255, 102, 102, 0.2);
         }
         
+        /* === МЕНЮ С ПОДДЕРЖКОЙ ПРОЕКТА === */
         #menu-overlay { 
             position: absolute; 
-            top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(5, 5, 18, 0.95); 
-            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: linear-gradient(135deg, rgba(5,5,18,0.98) 0%, rgba(10,5,25,0.98) 100%);
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
             z-index: 20;
-            padding-top: 80px;
+            padding: 70px 15px 20px;
             box-sizing: border-box;
+            overflow-y: auto;
+            /* ✅ Скрытый скроллбар для меню */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
-        #game-title { color: #00ffaa; font-size: 28px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
-        .btn { padding: 15px 40px; font-size: 18px; font-weight: bold; color: #fff; background: linear-gradient(45deg, #ff0055, #aa00ff); border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 0 15px rgba(255,0,85,0.4); font-family: sans-serif; }
+        #menu-overlay::-webkit-scrollbar {
+            display: none;
+        }
         
-        #controls { position: absolute; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: space-around; padding: 0 10px; box-sizing: border-box; z-index: 10; }
-        .ctrl-btn { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; color: #fff; font-size: 24px; font-weight: bold; display: flex; justify-content: center; align-items: center; user-select: none; }
-        .ctrl-btn:active { background: rgba(255,255,255,0.2); }
+        #game-title { 
+            color: #00ffaa; 
+            font-size: 24px; 
+            margin: 0 0 20px 0; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            text-align: center;
+            text-shadow: 0 0 15px #00ffaa88;
+        }
+        
+        /* === БЛОК ПОДДЕРЖКИ === */
+        #support-box {
+            background: rgba(10, 15, 40, 0.9);
+            border: 2px solid #6699ff;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 340px;
+            width: 100%;
+            margin: 0 0 25px 0;
+            box-shadow: 0 0 25px rgba(102, 153, 255, 0.3);
+            animation: pulseBorder 3s ease-in-out infinite;
+        }
+        @keyframes pulseBorder {
+            0%, 100% { box-shadow: 0 0 25px rgba(102, 153, 255, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(102, 153, 255, 0.6); }
+        }
+        
+        #support-box h3 {
+            color: #6699ff;
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            text-align: center;
+            text-shadow: 0 0 10px #6699ff88;
+        }
+        
+        #support-box p {
+            color: #ccc;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 8px 0;
+            text-align: center;
+        }
+        
+        .heart {
+            color: #ff6699;
+            font-size: 20px;
+            display: block;
+            text-align: center;
+            margin: 10px 0;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .phone-block {
+            background: rgba(0, 30, 60, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #00aaff44;
+        }
+        .phone-block strong {
+            color: #00ffaa;
+            font-size: 18px;
+            letter-spacing: 1px;
+            display: block;
+            text-align: center;
+            margin-bottom: 8px;
+            font-family: monospace;
+        }
+        
+        .copy-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #00aaff, #0066cc);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 5px;
+        }
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 170, 255, 0.5);
+        }
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #00cc88, #009966);
+        }
+        
+        .note {
+            color: #888;
+            font-size: 11px;
+            text-align: center;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        .note span {
+            color: #00ffaa;
+        }
+        
+        .catalog-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffcc66;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 12px 20px;
+            background: rgba(255, 204, 102, 0.15);
+            border: 2px solid #ffcc66;
+            border-radius: 25px;
+            margin: 10px 0 25px 0;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .catalog-link:hover {
+            background: rgba(255, 204, 102, 0.3);
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 204, 102, 0.4);
+        }
+        .catalog-link::before {
+            content: "🌟";
+            font-size: 16px;
+        }
+        
+        .btn { 
+            padding: 15px 50px; 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #fff; 
+            background: linear-gradient(45deg, #ff0055, #aa00ff); 
+            border: none; 
+            border-radius: 30px; 
+            cursor: pointer; 
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.5); 
+            font-family: sans-serif;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(255, 0, 85, 0.8);
+        }
+        
+        #controls { 
+            position: absolute; 
+            bottom: 30px; 
+            left: 0; 
+            width: 100%; 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 0 10px; 
+            box-sizing: border-box; 
+            z-index: 10; 
+        }
+        .ctrl-btn { 
+            width: 70px; 
+            height: 70px; 
+            background: rgba(255,255,255,0.05); 
+            border: 2px solid rgba(255,255,255,0.2); 
+            border-radius: 50%; 
+            color: #fff; 
+            font-size: 24px; 
+            font-weight: bold; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            user-select: none; 
+        }
+        .ctrl-btn:active { 
+            background: rgba(255,255,255,0.2); 
+        }
+        
+        /* === АДАПТИВ ДЛЯ МОБИЛЬНЫХ === */
+        @media (max-width: 480px) {
+            #support-box { padding: 15px; margin: 0 0 20px 0; }
+            #game-title { font-size: 20px; }
+            .phone-block strong { font-size: 16px; }
+            .btn { padding: 12px 40px; font-size: 18px; }
+        }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     
-    <!-- ЛОГОТИП -->
+    <!-- ✅ ЛОГОТИП ПО ЦЕНТРУ ВВЕРХУ -->
     <div id="logo">
         <img id="logo-img" src="favicon.ico" alt="Логотип" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧩</text></svg>'">
         <div id="logo-text">ANTI AI TETRIS</div>
@@ -120,9 +366,31 @@
     <!-- 🔇 КНОПКА ЗВУКА -->
     <button id="sound-btn" class="ui-element" title="Вкл/Выкл звук">🔊</button>
     
+    <!-- 🎨 МЕНЮ С ПОДДЕРЖКОЙ ПРОЕКТА -->
     <div id="menu-overlay">
-        <div id="game-title">ТЕТРИС ХАОС 3D<br><span style="font-size:14px; color:#aaa; text-transform:none;">(Со звуком 🎵)</span></div>
-        <button id="action-btn" class="btn">СТАРТ</button>
+        <div id="game-title">ТЕТРИС ХАОС 3D<br><span style="font-size:13px; color:#aaa; text-transform:none;">(Со звуком 🎵)</span></div>
+        
+        <!-- ✨ БЛОК ПОДДЕРЖКИ -->
+        <div id="support-box">
+            <h3>🤝 ПОДДЕРЖАТЬ ПРОЕКТ</h3>
+            <span class="heart">💙</span>
+            <p>Приложение бесплатное. Было и останется.</p>
+            <p>Если проект помог вам или вашим близким — можете поддержать разработку добровольным переводом.</p>
+            
+            <div class="phone-block">
+                <strong>📱 8-920-227-56-76</strong>
+                <button class="copy-btn" id="copyPhone" onclick="copyPhone()">📋 Копировать номер</button>
+                <p class="note">✅ Деньги придут мгновенно. <span>Без комиссии.</span> Безопасно.</p>
+            </div>
+            
+            <p class="heart">❤️ Спасибо за поддержку!</p>
+            
+            <a href="https://ancf-hue.github.io/" target="_blank" class="catalog-link">
+                Каталог бесплатных офлайн-приложений Anti-AI Shield
+            </a>
+        </div>
+        
+        <button id="action-btn" class="btn">▶ СТАРТ</button>
     </div>
 
     <div id="controls">
@@ -133,11 +401,51 @@
 </div>
 
 <script>
+    // ================== КОПИРОВАНИЕ НОМЕРА ТЕЛЕФОНА ==================
+    function copyPhone() {
+        const phone = '8-920-227-56-76';
+        
+        // Современный способ (работает в большинстве браузеров)
+        navigator.clipboard.writeText(phone).then(() => {
+            const btn = document.getElementById('copyPhone');
+            const originalText = btn.innerHTML;
+            
+            // Визуальное подтверждение
+            btn.innerHTML = '✅ Скопировано!';
+            btn.classList.add('copied');
+            
+            // Возврат кнопки через 2 секунды
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+            
+        }).catch(err => {
+            // Фолбэк для старых браузеров
+            const textarea = document.createElement('textarea');
+            textarea.value = phone;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            const btn = document.getElementById('copyPhone');
+            btn.innerHTML = '✅ Скопировано!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerHTML = '📋 Копировать номер';
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+
     // ================== АУДИО-СИСТЕМА (Web Audio API) ==================
     const AudioSys = {
-        ctx: null,
-        muted: false,
+        ctx: null,        // Аудио-контекст
+        muted: false,     // Состояние звука
         
+        // Инициализация аудио (требует взаимодействия пользователя)
         init() {
             if (!this.ctx) {
                 this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -147,7 +455,7 @@
             }
         },
         
-        // 🎵 Генерация тона (синусоида)
+        // 🎵 Генерация тона (синусоида, квадрат, пила, треугольник)
         playTone(freq, duration, type = 'sine', volume = 0.1, delay = 0) {
             if (this.muted || !this.ctx) return;
             
@@ -157,7 +465,7 @@
             osc.type = type;
             osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
             
-            // Плавное затухание
+            // Плавное затухание (ADSR-подобная огибающая)
             gain.gain.setValueAtTime(0, this.ctx.currentTime + delay);
             gain.gain.linearRampToValueAtTime(volume, this.ctx.currentTime + delay + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
@@ -169,11 +477,11 @@
             osc.stop(this.ctx.currentTime + delay + duration);
         },
         
-        // 🎵 Звук исчезновения строки (приятный аккорд)
+        // 🎵 Звук исчезновения строки (приятный арпеджио)
         playLineClear() {
             if (this.muted) return;
             this.init();
-            // Арпеджио вверх
+            // Восходящий аккорд: C5, E5, G5, C6
             [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
                 this.playTone(freq, 0.15, 'sine', 0.08, i * 0.05);
             });
@@ -186,21 +494,21 @@
             this.playTone(220, 0.08, 'square', 0.05);
         },
         
-        // 🎵 Звук поворота
+        // 🎵 Звук поворота фигуры
         playRotate() {
             if (this.muted) return;
             this.init();
             this.playTone(440, 0.04, 'triangle', 0.03);
         },
         
-        // 🎵 Звук движения
+        // 🎵 Звук движения фигуры
         playMove() {
             if (this.muted) return;
             this.init();
             this.playTone(330, 0.03, 'sine', 0.02);
         },
         
-        // 🎵 Звук игры окончена
+        // 🎵 Звук окончания игры
         playGameOver() {
             if (this.muted) return;
             this.init();
@@ -216,6 +524,7 @@
             return this.muted;
         }
     };
+
 
     // ================== ОСНОВНОЙ КОД ИГРЫ ==================
     const container = document.getElementById('game-container');
@@ -255,30 +564,46 @@
     let activePiece = null;
     let globalAngleX = 0, globalAngleY = 0, globalAngleZ = 0;
 
+
+    // ================== 3D МАТЕМАТИКА ==================
+    // Поворот точки в 3D пространстве вокруг осей X, Y, Z
     function rotate3D(x, y, z, ax, ay, az) {
+        // Поворот вокруг оси X
         let radX = ax;
         let y1 = y * Math.cos(radX) - z * Math.sin(radX);
         let z1 = y * Math.sin(radX) + z * Math.cos(radX);
+        
+        // Поворот вокруг оси Y
         let radY = ay;
         let x2 = x * Math.cos(radY) + z1 * Math.sin(radY);
         let z2 = -x * Math.sin(radY) + z1 * Math.cos(radY);
+        
+        // Поворот вокруг оси Z
         let radZ = az;
         let x3 = x2 * Math.cos(radZ) - y1 * Math.sin(radZ);
         let y3 = x2 * Math.sin(radZ) + y1 * Math.cos(radZ);
+        
         return { x: x3, y: y3, z: z2 };
     }
 
+    // Проекция 3D точки на 2D экран (перспектива)
     function project(x, y, z) {
-        const fov = 420; 
-        const viewerDistance = 14; 
-        const scale = fov / (viewerDistance + z);
+        const fov = 420;  // Поле зрения
+        const viewerDistance = 14;  // Расстояние до камеры
+        const scale = fov / (viewerDistance + z);  // Масштабирование по глубине
+        
         const screenX = canvas.width / 2 + x * scale;
-        const screenY = canvas.height * 0.88 - y * scale; 
+        const screenY = canvas.height * 0.88 - y * scale;  // 0.88 - смещение вверх
+        
         return { x: screenX, y: screenY };
     }
 
+
+    // ================== ОТРИСОВКА 3D КУБА ==================
     function draw3DCube(gridX, gridY, zOffset, color, angleX, angleY, angleZ) {
-        const size = 0.43;
+        const size = 0.43;  // Размер куба
+        
+        // 8 вершин куба
         const vertices = [
             {x: -size, y: -size, z: -size}, {x: size, y: -size, z: -size},
             {x: size, y: size, z: -size},   {x: -size, y: size, z: -size},
@@ -286,6 +611,7 @@
             {x: size, y: size, z: size},    {x: -size, y: size, z: size}
         ];
 
+        // Поворот и проекция всех вершин
         const projectedVertices = vertices.map(v => {
             const rot = rotate3D(v.x, v.y, v.z, angleX, angleY, angleZ);
             const finalX = (gridX - COLS / 2 + 0.5) * 0.9 + rot.x;
@@ -294,11 +620,13 @@
             return project(finalX, finalY, finalZ);
         });
 
+        // 6 граней куба (индексы вершин)
         const faces = [
             [0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4],
             [2, 3, 7, 6], [0, 3, 7, 4], [1, 2, 6, 5]
         ];
 
+        // Отрисовка каждой грани
         faces.forEach((face, index) => {
             ctx.beginPath();
             ctx.moveTo(projectedVertices[face[0]].x, projectedVertices[face[0]].y);
@@ -307,16 +635,23 @@
             }
             ctx.closePath();
 
+            // Основной цвет грани
             ctx.fillStyle = color;
             ctx.fill();
+            
+            // Затемнение для эффекта объёма
             ctx.fillStyle = `rgba(0, 0, 0, ${0.12 * (index % 4)})`;
             ctx.fill();
+            
+            // Контур грани
             ctx.strokeStyle = 'rgba(255,255,255,0.18)';
             ctx.lineWidth = 1;
             ctx.stroke();
         });
     }
 
+
+    // ================== ЛОГИКА ИГРЫ ==================
     function spawnPiece() {
         const keys = Object.keys(SHAPES);
         const type = keys[Math.floor(Math.random() * keys.length)];
@@ -327,26 +662,34 @@
             color: color,
             blocks: SHAPES[type].map(b => ({x: b[0], y: b[1]})),
             x: Math.floor(COLS / 2) - 1,
-            preciseY: ROWS - 1.5
+            preciseY: ROWS - 1.5  // Плавная координата для анимации
         };
 
+        // Проверка на проигрыш при спавне
         if (checkCollision(0, 0, Math.round(activePiece.preciseY))) {
             gameOver();
         }
     }
 
+    // Проверка столкновений фигуры со стенами и другими блоками
     function checkCollision(offsetX, offsetY, targetGridY) {
         for (let b of activePiece.blocks) {
             let tx = activePiece.x + b.x + offsetX;
             let ty = targetGridY + b.y + offsetY;
+            
+            // Границы поля
             if (tx < 0 || tx >= COLS || ty < 0) return true;
+            
+            // Столкновение с зафиксированными блоками
             if (ty < ROWS && grid[ty][tx]) return true;
         }
         return false;
     }
 
+    // Фиксация фигуры на поле
     function lockPiece() {
         const finalGridY = Math.round(activePiece.preciseY);
+        
         activePiece.blocks.forEach(b => {
             let tx = activePiece.x + b.x;
             let ty = finalGridY + b.y;
@@ -364,6 +707,7 @@
         spawnPiece();
     }
 
+    // Проверка и удаление заполненных линий
     function checkLines() {
         let linesCleared = 0;
         
@@ -376,7 +720,7 @@
         }
         
         if (linesCleared > 0) {
-            // 🔊 ЗВУК ИСЧЕЗНОВЕНИЯ СТРОКИ!
+            // 🔊 Звук исчезновения строки
             AudioSys.playLineClear();
             
             score += linesCleared * 100;
@@ -384,17 +728,22 @@
         }
     }
 
+
+    // ================== ИГРОВОЙ ЦИКЛ ==================
     function updateAndRender(timestamp) {
         if (!lastTime) lastTime = timestamp;
-        const dt = (timestamp - lastTime) / 1000;
+        const dt = (timestamp - lastTime) / 1000;  // Дельта времени в секундах
         lastTime = timestamp;
 
+        // Адаптивный размер канваса
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
 
+        // Очистка экрана
         ctx.fillStyle = '#050512';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Отрисовка сетки поля
         for (let y = 0; y <= ROWS; y++) {
             const p1 = project(-COLS/2 * 0.9, y * 0.9, 0);
             const p2 = project(COLS/2 * 0.9, y * 0.9, 0);
@@ -410,18 +759,23 @@
 
         if (isPlaying) {
             if (activePiece) {
+                // Плавное падение на основе времени
                 activePiece.preciseY -= currentFallSpeed * dt;
-                const nextGridY = Math.floor(activePiece.preciseY);
+                
+                // Проверка коллизии при падении
                 if (checkCollision(0, -1, Math.round(activePiece.preciseY))) {
                     if (activePiece.preciseY <= Math.round(activePiece.preciseY)) {
                         lockPiece();
                     }
                 }
+                
+                // Плавное накопление углов хаоса
                 globalAngleX += 1.8 * dt;
                 globalAngleY += 2.8 * dt;
                 globalAngleZ += 1.2 * dt;
             }
 
+            // Отрисовка зафиксированных блоков (без вращения)
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     if (grid[r][c]) {
@@ -430,11 +784,12 @@
                 }
             }
 
+            // Отрисовка активной фигуры (с хаотичным вращением)
             if (activePiece) {
                 activePiece.blocks.forEach(b => {
                     draw3DCube(
                         activePiece.x + b.x, 
-                        activePiece.preciseY + b.y,
+                        activePiece.preciseY + b.y,  // Точная дробная координата
                         0, 
                         activePiece.color, 
                         globalAngleX, 
@@ -448,68 +803,85 @@
         requestAnimationFrame(updateAndRender);
     }
 
+
     // ================== УПРАВЛЕНИЕ ==================
-    function moveLeft()  { 
+    function moveLeft() { 
         if (isPlaying && activePiece && !checkCollision(-1, 0, Math.round(activePiece.preciseY))) {
             activePiece.x--;
-            AudioSys.playMove(); // 🔊 Звук движения
-        }
-    }
-    function moveRight() { 
-        if (isPlaying && activePiece && !checkCollision(1, 0, Math.round(activePiece.preciseY))) {
-            activePiece.x++;
-            AudioSys.playMove(); // 🔊 Звук движения
+            AudioSys.playMove();  // 🔊 Звук движения
         }
     }
     
-    function startFastDrop() { currentFallSpeed = FAST_SPEED; }
-    function stopFastDrop()  { currentFallSpeed = NORMAL_SPEED; }
+    function moveRight() { 
+        if (isPlaying && activePiece && !checkCollision(1, 0, Math.round(activePiece.preciseY))) {
+            activePiece.x++;
+            AudioSys.playMove();  // 🔊 Звук движения
+        }
+    }
+    
+    function startFastDrop() { 
+        currentFallSpeed = FAST_SPEED; 
+    }
+    
+    function stopFastDrop() { 
+        currentFallSpeed = NORMAL_SPEED; 
+    }
 
+    // Поворот фигуры (упрощённый 2D-поворот для логики)
     function rotatePiece() {
         if (isPlaying && activePiece) {
-            // Простой поворот для 2D-представления
             const old = JSON.parse(JSON.stringify(activePiece.blocks));
+            
+            // Простой поворот на 90 градусов
             activePiece.blocks.forEach(b => {
                 const nx = -b.y;
                 const ny = b.x;
-                b.x = nx; b.y = ny;
+                b.x = nx; 
+                b.y = ny;
             });
+            
+            // Отмена если коллизия
             if (checkCollision(0, 0, Math.round(activePiece.preciseY))) {
-                activePiece.blocks = old; // Отмена если коллизия
+                activePiece.blocks = old;
             } else {
-                AudioSys.playRotate(); // 🔊 Звук поворота
+                AudioSys.playRotate();  // 🔊 Звук поворота
             }
         }
     }
 
-    // События
+    // Обработчики кнопок на экране
     document.getElementById('btn-left').addEventListener('pointerdown', moveLeft);
     document.getElementById('btn-right').addEventListener('pointerdown', moveRight);
     document.getElementById('btn-down').addEventListener('pointerdown', startFastDrop);
     document.getElementById('btn-down').addEventListener('pointerup', stopFastDrop);
     document.getElementById('btn-down').addEventListener('pointerleave', stopFastDrop);
 
-    // Клавиатура + поворот по верхней стрелке
+    // Обработчики клавиатуры
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') moveLeft();
         if (e.key === 'ArrowRight') moveRight();
         if (e.key === 'ArrowDown') startFastDrop();
-        if (e.key === 'ArrowUp') { e.preventDefault(); rotatePiece(); }
+        if (e.key === 'ArrowUp') { 
+            e.preventDefault(); 
+            rotatePiece(); 
+        }
     });
     window.addEventListener('keyup', (e) => {
         if (e.key === 'ArrowDown') stopFastDrop();
     });
 
-    // 🔇 КНОПКА ЗВУКА
+    // 🔇 Переключение звука
     soundBtn.addEventListener('click', () => {
-        AudioSys.init(); // Инициализация при первом клике
+        AudioSys.init();  // Инициализация при первом клике
         const muted = AudioSys.toggle();
         soundBtn.textContent = muted ? '🔇' : '🔊';
         soundBtn.classList.toggle('muted', muted);
     });
 
+
+    // ================== УПРАВЛЕНИЕ ИГРОЙ ==================
     function startGame() {
-        AudioSys.init(); // Инициализация аудио при старте
+        AudioSys.init();  // Инициализация аудио
         grid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
         score = 0;
         scoreEl.innerText = score;
@@ -521,13 +893,15 @@
 
     function gameOver() {
         isPlaying = false;
-        AudioSys.playGameOver(); // 🔊 Звук проигрыша
+        AudioSys.playGameOver();  // 🔊 Звук проигрыша
         gameTitle.innerHTML = "ИГРА ОКОНЧЕНА<br><span style='font-size:16px;color:#ff0055;'>Вы набрали: " + score + "</span>";
         actionBtn.innerText = "ЗАНОВО";
         menuOverlay.style.display = 'flex';
     }
 
     actionBtn.addEventListener('click', startGame);
+    
+    // Запуск игрового цикла
     requestAnimationFrame(updateAndRender);
 </script>
 </body>
